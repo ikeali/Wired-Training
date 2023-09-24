@@ -2,83 +2,51 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets,status
 from rest_framework.decorators import action
 from django.db import models
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate,login
 from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser,AllowAny,IsAuthenticated
-from .models import Course,Enrollment,Topic,Lesson,Quiz,Lab,Review,CourseDetail,Student,Progress,QuizSubmission,LabTaskSubmission,LessonCompletion,TopicCompletion
+from .models import Course,Topic,Lesson,Quiz,Lab,Review,CourseDetail,Student,Progress,QuizSubmission,LabTaskSubmission,LessonCompletion,TopicCompletion
 from .serializers import (UserSerializer,CourseSerializer,TopicSerializer,LessonSerializer,QuizSerializer,LabSerializer,ReviewSerializer,CourseDetailSerializer,StartCourseSerializer,ProgressSerializer,EnrolledCourseSerializer,ContentSerializer,QuizSubmissionSerializer, LabTaskSubmissionSerializer,LessonCompletionSerializer,TopicCompletionSerializer)
 from rest_framework.decorators import action
 
-
+User = get_user_model()
 
 class UserViewset(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-    
-    @action(detail=False, methods=['post'])
-    def signup(self,request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            # token, created = Token.objects.get_or_create(user=user)
-            # return Response({'token': token.key, 'user_id': user.id}, status=status.HTTP_201_CREATED)
-            return Response({'message':'success'}, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    # permission_classes = [AllowAny]
 
     @action(detail=False, methods=['post'])
-    def signin(self,request):
+    def signup(self, request):
+
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({'message': 'User created successfully.'}, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    @action(detail=False, methods=['post'])
+    def signin(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-        
+   
         if username is None or password is None:
             return Response({'error': 'Both username and password are required.'}, status=400)
 
         user = authenticate(username=username, password=password)
+        print("Authenticated user:", user)
 
         if user is not None:
-            # User credentials are valid, log the user in
-            login(request, user)
-            return Response({'success': 'User successfully logged in.'}, status=200)
+            token, created = Token.objects.get_or_create(user=user)
+            print("Token key:", token.key)
+
+            return Response({'token': token.key}, status=200)
         else:
-            # Authentication failed
             return Response({'error': 'Invalid username or password.'}, status=400)
-
-
-        # username = request.data.get('username')
-        # password = request.data.get('password')
-        # email = request.data.get('email')
-
-         # Create a new user
-        # user = User.objects.create(username=username, password=password, email=email)
-
-        # user = authenticate(username=username, password=password, email=email)
-
-        # Check if the user is authenticated
-        # if user is not None:
-        #     # User is authenticated
-        #     return Response({'message': 'success'}, status=status.HTTP_200_OK)
-        # else:
-        #     # Authentication failed
-        #     return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-        
-
-        # if username and password:
-        #     user = User.objects.filter(username=username).first()
-
-        #     # check for the correct credentials
-        #     if user and user.check_password(password):
-        #         token, created = Token.objects.get_or_create(user=user)
-        #         return Response({'token': token.key, 'user_id': user.id}, status=status.HTTP_200_OK)
-            
-        #     return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-    
-
 
 
 class CourseAdminViewSet(viewsets.ModelViewSet):

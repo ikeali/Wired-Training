@@ -1,8 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from cloudinary.models import CloudinaryField
 from django.conf import settings
+
+User = get_user_model()
 
 
 
