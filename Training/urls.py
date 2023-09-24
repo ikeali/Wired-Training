@@ -1,6 +1,6 @@
 from django.urls import path, include
 from .views import(UserViewset,CourseAdminViewSet,TopicAdminViewSet,LessonAdminViewSet,QuizAdminViewSet,CourseDetailAdminViewSet,LabAdminViewSet,ReviewAdminViewSet,UserCourseViewSet,CourseDetailViewSet,
-StartCourseViewSet,ProgressViewSet,EnrolledCoursesViewSet,ReviewViewSet,CourseContentsViewSet,QuizSubmissionViewSet,LabTaskSubmissionViewSet,LessonCompletionViewSet,TopicCompletionViewSet)
+                    EnrollmentViewSet,StartCourseViewSet,ProgressViewSet,EnrolledCoursesViewSet,ReviewViewSet,CourseContentsViewSet,QuizSubmissionViewSet,LabTaskSubmissionViewSet,LessonCompletionViewSet,TopicCompletionViewSet)
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -15,6 +15,7 @@ router.register(r'admin/review', ReviewAdminViewSet)
 router.register(r'admin/course-details', CourseDetailAdminViewSet)
 router.register(r'courses', UserCourseViewSet, basename='user-course')
 router.register(r'course-details', CourseDetailViewSet, basename='course-detail')
+router.register(r'enroll', EnrollmentViewSet, basename='enroll')
 router.register(r'start-course', StartCourseViewSet, basename='start-course')
 router.register(r'progress', ProgressViewSet, basename='progress')
 router.register(r'enrolled-courses', EnrolledCoursesViewSet, basename='enrolled-courses')

@@ -77,6 +77,10 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         model = CourseDetail
         fields = '__all__'
 
+class EnrollmentSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+    
+
 class StartCourseSerializer(serializers.Serializer):
     email = serializers.EmailField()
     course_id = serializers.IntegerField()

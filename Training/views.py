@@ -2,21 +2,24 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets,status
 from rest_framework.decorators import action
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+# from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+# from .services import EnrollmentService
 from rest_framework.permissions import IsAdminUser,AllowAny,IsAuthenticated
 from .models import Course,Topic,Lesson,Quiz,Lab,Review,CourseDetail,Student,Progress,QuizSubmission,LabTaskSubmission,LessonCompletion,TopicCompletion
-from .serializers import (UserSerializer,CourseSerializer,TopicSerializer,LessonSerializer,QuizSerializer,LabSerializer,ReviewSerializer,CourseDetailSerializer,StartCourseSerializer,ProgressSerializer,EnrolledCourseSerializer,ContentSerializer,QuizSubmissionSerializer, LabTaskSubmissionSerializer,LessonCompletionSerializer,TopicCompletionSerializer)
+from .serializers import (UserSerializer,CourseSerializer,TopicSerializer,LessonSerializer,QuizSerializer,LabSerializer,ReviewSerializer,CourseDetailSerializer,
+                          EnrollmentSerializer,StartCourseSerializer,ProgressSerializer,EnrolledCourseSerializer,ContentSerializer,QuizSubmissionSerializer, LabTaskSubmissionSerializer,LessonCompletionSerializer,TopicCompletionSerializer)
 from rest_framework.decorators import action
 
-User = get_user_model()
+# User = get_user_model()
 
 class UserViewset(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # permission_classes = [AllowAny]
+    permission_classes = [AllowAny]
 
     @action(detail=False, methods=['post'])
     def signup(self, request):
@@ -134,6 +137,37 @@ class CourseDetailViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(stats_data)
 
 
+
+class EnrollmentViewSet(viewsets.ViewSet):
+    serializer_class = EnrollmentSerializer
+    def create(self, request, *args, **kwargs):
+            serializer = self.serializer_class(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            course_id = serializer.validated_data.get('course_id')
+
+            try:
+                course = Course.objects.get(pk=course_id)
+            except Course.DoesNotExist:
+                return Response({'error': 'Course not found.'}, status=404)
+
+            user = request.user
+            try:
+                student = Student.objects.get(user=user)
+            except Student.DoesNotExist:
+                return Response({'error': 'Student profile not found.'}, status=404)
+
+            # Enroll the student in the course
+            student.courses.add(course)
+
+            return Response({
+                'message': 'You have been enrolled successfully.',
+                'student_id': student.id,
+                'course_id': course_id
+            }, status=201)
+
+
+
 class StartCourseViewSet(viewsets.ViewSet):
     serializer_class = StartCourseSerializer
 
@@ -142,13 +176,30 @@ class StartCourseViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        student = serializer.create(serializer.validated_data)
+        course_id = serializer.validated_data.get('course_id')
+
+        user = request.user
+        student, message = EnrollmentService.enroll_student(user, course_id)
+
+        if student:
+            return Response({
+                'message': message,
+                'student_id': student.id,
+                'course_id': course_id
+            }, status=201)
+        else:
+            return Response({'error': message}, status=404)
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.serializer_class(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+
+    #     student = serializer.create(serializer.validated_data)
         
-        return Response({
-            'message': 'Course started successfully.',
-            'student_id': student.id,
-            'course_id': serializer.validated_data['course_id']
-        }, status=201)
+    #     return Response({
+    #         'message': 'Course started successfully.',
+    #         'student_id': student.id,
+    #         'course_id': serializer.validated_data['course_id']
+    #     }, status=201)
 
     
     def get_started_course(self, request, pk=None):
@@ -205,15 +256,26 @@ class EnrolledCoursesViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CourseSerializer
     permission_classes = [AllowAny]
 
+    # def get_queryset(self):
+    #     user = self.request.user
+
+    #     try:
+    #         student = user.student
+    #     except Student.DoesNotExist:
+    #         # If user has no student profile, create one
+    #         student = Student.objects.create(user=user)
+
+    #     enrolled_courses = student.courses.all()
+    #     return enrolled_courses
+
     def get_queryset(self):
         user = self.request.user
+
         try:
             student = user.student
+            return student.courses.all()
         except Student.DoesNotExist:
-            return Course.objects.none()  # Return empty queryset if user has no student profile
-        
-        enrolled_courses = student.courses.all()
-        return enrolled_courses  
+            return Course.objects.none()
      
 
 class ReviewViewSet(viewsets.ModelViewSet):
